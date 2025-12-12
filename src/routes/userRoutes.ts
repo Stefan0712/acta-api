@@ -1,4 +1,4 @@
-import express from 'express';
+const express = require('express');
 import { updateProfile, searchUsers } from '../controllers/userController';
 import { protect } from '../middleware/authMiddleware';
 
