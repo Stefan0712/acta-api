@@ -1,13 +1,18 @@
-import { Request, Response } from 'express';
-import ShoppingList, { IShoppingList } from '../models/ShoppingList';
+import { Response } from 'express';
+import ShoppingList from '../models/ShoppingList';
 import { AuthRequest } from '../middleware/authMiddleware';
+import {ShoppingList as IShoppingList} from '../models/models';
+import { userIsMember } from '../utilities/groupUtilities';
+import ShoppingListItem from '../models/ShoppingListItem';
 
+
+// Create a new list
 export const createList = async (req: AuthRequest, res: Response) => {
   try {
     const { name, description, color, groupId, isPinned } = req.body;
     
-    const newList = await ShoppingList.create({
-      userId: req.user.id,
+    const newList: IShoppingList = await ShoppingList.create({
+      authorId: req.user.id,
       name,
       description,
       color,
@@ -24,29 +29,14 @@ export const createList = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Get all list from a group
 export const getLists = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user.id;
-    const { since, groupId } = req.query;
-
+    const { groupId } = req.query;
     // Build the query
-    // Must belong to this user
-    const query: any = { userId };
+    const query: any = { groupId };
 
-    // Filter by specific Group
-    if (groupId) {
-      query.groupId = groupId;
-    }
-
-    // 3. SYNC LOGIC
-    if (since) {
-      query.updatedAt = { $gt: new Date(since as string) };
-    } else {
-      query.isDeleted = false;
-    }
-
-    const lists = await ShoppingList.find(query).sort({ updatedAt: -1 });
-
+    const lists = await ShoppingList.find(query);
     res.status(200).json(lists);
 
   } catch (error) {
@@ -55,7 +45,7 @@ export const getLists = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
+// Get one list by id
 export const getListById = async (req: AuthRequest, res: Response) => {
   try {
     const list = await ShoppingList.findById(req.params.id);
@@ -63,9 +53,11 @@ export const getListById = async (req: AuthRequest, res: Response) => {
     if (!list) {
       return res.status(404).json({ message: 'List not found' });
     }
-
-    if (list.userId.toString() !== req.user.id) {
-       return res.status(403).json({ message: 'Not authorized to view this list' });
+    
+    const groupId = list.groupId; 
+    const isMember = await userIsMember(groupId, req.user.id); 
+    if (list.authorId.toString() !== req.user.id && !isMember) {
+      return res.status(403).json({ message: 'Not authorized to view this list' });
     }
 
     res.status(200).json(list);
@@ -75,6 +67,7 @@ export const getListById = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Update a list
 export const updateList = async (req: AuthRequest, res: Response) => {
   try {
     const list = await ShoppingList.findById(req.params.id);
@@ -82,7 +75,8 @@ export const updateList = async (req: AuthRequest, res: Response) => {
     if (!list) return res.status(404).json({ message: 'List not found' });
 
     // Security Check
-    if (list.userId.toString() !== req.user.id) {
+    const isMember = await userIsMember(list.groupId, req.user.id); 
+    if (list.authorId.toString() !== req.user.id || !isMember) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
@@ -100,20 +94,39 @@ export const updateList = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Delete one list
 export const deleteList = async (req: AuthRequest, res: Response) => {
   try {
     const list = await ShoppingList.findById(req.params.id);
 
     if (!list) return res.status(404).json({ message: 'List not found' });
+    let isAuthorized;
+    if (list.authorId.toString() === req.user.id) {
+      isAuthorized = true;
+    }
 
-    if (list.userId.toString() !== req.user.id) {
+    if (!isAuthorized) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    list.isDeleted = true;
-    await list.save();
+    const itemDeletionResult = await ShoppingListItem.deleteMany({ 
+      listId: list._id 
+    });
+    
+    const listDeletionResult = await ShoppingList.deleteOne({ 
+      _id: list._id 
+    });
 
-    res.status(200).json({ message: 'List removed', id: list._id });
+    if (listDeletionResult.deletedCount === 0) {
+      return res.status(404).json({ message: 'List not found or already deleted.' });
+    }
+
+    res.status(200).json({ 
+      message: 'List and all associated items permanently deleted.',
+      listsDeleted: listDeletionResult.deletedCount,
+      itemsDeleted: itemDeletionResult.deletedCount
+    });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error deleting list' });

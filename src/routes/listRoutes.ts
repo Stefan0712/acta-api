@@ -1,4 +1,4 @@
-import express from 'express';
+const express = require('express');
 import { 
   createList, 
   getLists, 
@@ -20,5 +20,7 @@ router.route('/:id')
   .get(getListById)
   .put(updateList)
   .delete(deleteList);
+
+
 
 export default router;

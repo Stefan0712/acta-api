@@ -1,8 +1,11 @@
 import { Request, Response } from 'express';
-import ShoppingListItem, { IShoppingListItem } from '../models/ShoppingListItem';
+import ShoppingListItem from '../models/ShoppingListItem';
 import ShoppingList from '../models/ShoppingList';
 import { AuthRequest } from '../middleware/authMiddleware';
+import { userIsMember } from '../utilities/groupUtilities';
 
+
+// Create one item
 export const createItem = async (req: AuthRequest, res: Response) => {
   try {
     const { 
@@ -15,8 +18,8 @@ export const createItem = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'List not found' });
     }
     
-    if (list.userId.toString() !== req.user.id && !list.groupId) {
-       return res.status(403).json({ message: 'Not authorized to add items to this list' });
+    if (list.authorId.toString() !== req.user.id && !list.groupId) {
+      return res.status(403).json({ message: 'Not authorized to add items to this list' });
     }
 
     // Create the Item
@@ -43,6 +46,7 @@ export const createItem = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Get all items from a list
 export const getItems = async (req: AuthRequest, res: Response) => {
   try {
     const { listId, since } = req.query;
@@ -59,7 +63,8 @@ export const getItems = async (req: AuthRequest, res: Response) => {
       query.isDeleted = false;
     }
 
-    const items = await ShoppingListItem.find(query).sort({ isChecked: 1, createdAt: -1 });
+    // Show checked items first
+    const items = await ShoppingListItem.find(query).sort({ isChecked: 1 });
 
     res.status(200).json(items);
 
@@ -69,7 +74,7 @@ export const getItems = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// This handles: Checking off, Renaming, Assigning, Changing Qty
+// This handles: Checking off, Renaming, Assigning, Changing Qty, r any other update
 export const updateItem = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -78,17 +83,36 @@ export const updateItem = async (req: AuthRequest, res: Response) => {
     const item = await ShoppingListItem.findById(id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
 
-    // Security Check (Verify ownership of the item or list)
-    if (item.authorId.toString() !== req.user.id) {
-       const parentList = await ShoppingList.findById(item.listId);
-       if (parentList && parentList.userId.toString() !== req.user.id) {
-           return res.status(403).json({ message: 'Not authorized' });
-       }
+    // Find parent
+    const parentList = await ShoppingList.findById(item.listId).select('authorId groupId');
+
+    if (!parentList) {
+      // In case there is no parent list
+      return res.status(404).json({ message: 'Item\'s parent list not found' });
     }
 
-    // Handle "Reminder Reset" Logic
-    if (req.body.deadline && req.body.deadline !== item.deadline) {
-        req.body.isReminderSent = false;
+    let isAuthorized = false;
+
+    // Is the user the author
+    if (item.authorId.toString() === req.user.id) {
+      isAuthorized = true;
+    }
+    
+    // Did the user created the list containing that item
+    else if (parentList.authorId.toString() === req.user.id) {
+      isAuthorized = true;
+    }
+    
+    // Is the user a group member
+    else if (parentList.groupId) {
+      const isMember = await userIsMember(parentList.groupId, req.user.id); 
+      if (isMember) {
+        isAuthorized = true;
+      }
+    }
+    // Security Check (Verify ownership of the item or list)
+    if (!isAuthorized) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
 
     // Update
@@ -115,10 +139,10 @@ export const deleteItem = async (req: AuthRequest, res: Response) => {
 
     // Security Check
     if (item.authorId.toString() !== req.user.id) {
-         const parentList = await ShoppingList.findById(item.listId);
-         if (parentList && parentList.userId.toString() !== req.user.id) {
-             return res.status(403).json({ message: 'Not authorized' });
-        }
+        const parentList = await ShoppingList.findById(item.listId);
+        if (parentList && parentList.authorId.toString() !== req.user.id) {
+          return res.status(403).json({ message: 'Not authorized' });
+      }
     }
 
     item.isDeleted = true;
