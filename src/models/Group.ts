@@ -1,19 +1,6 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
+import { Group } from './models';
 
-export interface IGroupMember {
-  userId: mongoose.Types.ObjectId;
-  role: 'owner' | 'moderator' | 'member';
-  joinedAt: Date;
-}
-
-export interface IGroup extends Document {
-  name: string;
-  description: string;
-  authorId: mongoose.Types.ObjectId;
-  members: IGroupMember[];
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 const GroupSchema: Schema = new Schema(
   {
@@ -56,4 +43,4 @@ const GroupSchema: Schema = new Schema(
 
 GroupSchema.index({ 'members.userId': 1 });
 
-export default mongoose.model<IGroup>('Group', GroupSchema);
+export default mongoose.model<Group>('Group', GroupSchema);

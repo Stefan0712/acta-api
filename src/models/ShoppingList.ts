@@ -1,16 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
-
-export interface IShoppingList extends Document {
-  name: string;
-  description?: string;
-  userId: mongoose.Types.ObjectId;
-  groupId?: mongoose.Types.ObjectId;
-  color: string;
-  isPinned: boolean;
-  isDeleted: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import mongoose, { Schema } from 'mongoose';
+import { ShoppingList } from './models';
 
 const ShoppingListSchema: Schema = new Schema(
   {
@@ -23,7 +12,7 @@ const ShoppingListSchema: Schema = new Schema(
       type: String, 
       default: '' 
     },
-        userId: { 
+    authorId: { 
       type: Schema.Types.ObjectId, 
       ref: 'User', 
       required: true 
@@ -44,7 +33,12 @@ const ShoppingListSchema: Schema = new Schema(
     isDeleted: { 
       type: Boolean, 
       default: false 
-    }
+    },
+    isDirty: { 
+      type: Boolean, 
+      default: false 
+    },
+    
   },
   { 
     timestamps: true 
@@ -54,4 +48,4 @@ const ShoppingListSchema: Schema = new Schema(
 ShoppingListSchema.index({ userId: 1, updatedAt: 1 });
 ShoppingListSchema.index({ groupId: 1 });
 
-export default mongoose.model<IShoppingList>('ShoppingList', ShoppingListSchema);
+export default mongoose.model<ShoppingList>('ShoppingList', ShoppingListSchema);
