@@ -21,8 +21,8 @@ router.route('/')
   .get(getMyGroups);
 
 router.get('/:id', getGroupById);
-router.delete('/:id/delete', deleteGroup);
-router.put('/:id/edit', updateGroup);
+router.delete('/:id', deleteGroup);
+router.put('/:id', updateGroup);
 router.get('/invite/lookup', lookupInvite);
 router.delete('/:id/leave', leaveGroup);
 router.post('/:groupId/invite/generate', generateInviteToken);

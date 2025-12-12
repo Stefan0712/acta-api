@@ -1,4 +1,4 @@
-import express from 'express';
+const express = require('express');
 import { uploadImage } from '../controllers/uploadController';
 import { protect } from '../middleware/authMiddleware';
 import { upload } from '../middleware/uploadMiddleware';

@@ -48,9 +48,9 @@
 |User|GET|/auth/me|_id|Get all user's data|
 |Group|GET|/groups|_id|Get all user's groups|
 |Group|POST|/groups|groupData|Create a group|
-|Group|DELETE|/groups/:id/delete|Group id|Delete a specific group|
+|Group|DELETE|/groups/:id|Group id|Delete a specific group|
 |Group|GET|/groups/:id/leave|User's id, Group's id|Leave a group|
-|Group|GET|/groups/:id/edit|_id, data|Update group|
+|Group|GET|/groups/:id|_id, data|Update group|
 |Group|GET|/groups/invite/lookup|Invite token|Get info about an invite|
 |Group|GET|/groups/invite/accept|User's id, Invite token|Accept an invite to join a group|
 |Group|GET|/groups/:id/invite/generate|Group's id|Generate an invite|
