@@ -1,4 +1,4 @@
-import express from 'express';
+const express = require('express');
 import { 
   createItem, 
   getItems, 
@@ -19,4 +19,5 @@ router.route('/:id')
   .put(updateItem)
   .delete(deleteItem);
 
+  
 export default router;
