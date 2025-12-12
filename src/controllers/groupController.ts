@@ -8,12 +8,10 @@ import { GroupMember, Group as IGroup } from '../models/models';
 import ShoppingListItem from '../models/ShoppingListItem';
 import ShoppingList from '../models/ShoppingList';
 
-
+// Create a new group
 export const createGroup = async (req: AuthRequest, res: Response) => {
   try {
     const { name, description } = req.body;
-
-    // Automatically add the Creator as the first Member (Owner)
     const newGroup = await Group.create({
       name,
       description,
@@ -35,15 +33,13 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Get all groups that the user is a member of
 export const getMyGroups = async (req: AuthRequest, res: Response) => {
   try {
     const groups = await Group.find({
       'members.userId': req.user.id
     })
-    .sort({ updatedAt: -1 });
-
     res.status(200).json(groups);
-
   } catch (error) {
     console.error('Get Groups Error:', error);
     res.status(500).json({ message: 'Server error fetching groups' });
@@ -51,29 +47,29 @@ export const getMyGroups = async (req: AuthRequest, res: Response) => {
 };
 
 interface IPopulatedMember {
-    role: "owner" | "moderator" | "member";
-    userId: {
-        _id: string;
-        username: string;
-    } 
+  role: "owner" | "moderator" | "member";
+  userId: {
+    _id: string;
+    username: string;
+  } 
 }
 
+// Get a specific group
 export const getGroupById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-
     const populatedGroup = await Group.findById(id).populate('members.userId', 'username').lean(); 
-
     if (!populatedGroup) {
       return res.status(404).json({ message: 'Group not found' });
     }
-
     const isMember = (populatedGroup.members as unknown as IPopulatedMember[]).some((m) => m.userId._id.toString() === req.user.id);
 
+    // Allow user to see the group only if it is a member
     if (!isMember) {
       return res.status(403).json({ message: 'Not authorized to view this group' });
     }
 
+    // Return group data with the formatted members array
     const finalGroup = {
       ...populatedGroup,
       members: (populatedGroup.members as unknown as IPopulatedMember[]).map(member => ({
@@ -82,7 +78,6 @@ export const getGroupById = async (req: AuthRequest, res: Response) => {
         role: member.role 
       }))
     };
-
     res.status(200).json(finalGroup);
 
   } catch (error) {
@@ -94,7 +89,6 @@ export const getGroupById = async (req: AuthRequest, res: Response) => {
 export const leaveGroup = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-
     const group: IGroup | null = await Group.findById(id);
     if (!group) return res.status(404).json({ message: 'Group not found' });
 
@@ -127,167 +121,143 @@ export const leaveGroup = async (req: AuthRequest, res: Response) => {
 
 // Helper function to generate a URL-safe, random token
 const generateSecureToken = (length: number = 20): string => {
-    return crypto.randomBytes(Math.ceil(length / 2))
-        .toString('hex')
-        .slice(0, length);
+  return crypto.randomBytes(Math.ceil(length / 2))
+    .toString('hex')
+    .slice(0, length);
 };
 
- // Generates a unique, shareable invite link token for a specific group.
- // POST /api/groups/:groupId/invite/generate
+// Generates a unique, shareable invite link token for a specific group.
 export const generateInviteToken = async (req, res) => {
+  const { groupId } = req.params;
+  const currentUserId = req.user.id; 
   
-    // Get IDs and expiration setting
-    const { groupId } = req.params;
-    console.log(`Group id: ${groupId}`)
-    // Assuming you have middleware that attaches the authenticated user's ID to the request
-    const currentUserId = req.user.id; 
+  // Configuration
+  const expirationHours = 48; 
+  const expiresAt = new Date(Date.now() + expirationHours * 60 * 60 * 1000); 
+  const maxUses = 1; 
+  try {
+    // Make sure the user is an owner/member of the group
+    const group: IGroup | null = await Group.findById(groupId);
 
-    console.log(currentUserId)
-    
-    // Configuration
-    const expirationHours = 48; 
-    const expiresAt = new Date(Date.now() + expirationHours * 60 * 60 * 1000); 
-    const maxUses = 1; 
-    try {
-        // Make sure the user is an owner/member of the group
-        const group: IGroup | null = await Group.findById(groupId);
-
-        if (!group) {
-            res.status(404).json({ message: 'Group not found.' });
-            return;
-        }
-
-        // Check if the current user is a member or admin
-        const isMember = group.members.some(
-            member => member.userId.toString() === currentUserId.toString() 
-        );
-
-        if (!isMember) {
-            res.status(403).json({ message: 'Not authorized to generate invites for this group.' });
-            return;
-        }
-        
-        // Generate Token and save to db
-        const token = generateSecureToken();
-        
-        const newInvite: IInvite = new Invite({
-            token,
-            groupId,
-            createdBy: currentUserId,
-            expiresAt,
-            maxUses,
-            usesCount: 0,
-        });
-
-        await newInvite.save();
-        
-        //  Only send the unique token 
-        res.status(201).json({ 
-            message: 'Invite token successfully generated.',
-            token: newInvite.token,
-            expiresAt: newInvite.expiresAt,
-        });
-
-    } catch (error) {
-        console.error('Error generating invite token:', error);
-        res.status(500).json({ message: 'Server error during token generation.' });
+    if (!group) {
+      res.status(404).json({ message: 'Group not found.' });
+      return;
     }
+    const isMember = group.members.some(member => member.userId.toString() === currentUserId.toString());
+    if (!isMember) {
+      res.status(403).json({ message: 'Not authorized to generate invites for this group.' });
+      return;
+    }
+    
+    // Generate token and save to db
+    const token = generateSecureToken();
+    const newInvite: IInvite = new Invite({
+      token,
+      groupId,
+      createdBy: currentUserId,
+      expiresAt,
+      maxUses,
+      usesCount: 0,
+    });
+
+    await newInvite.save();
+    
+    // Send the token 
+    res.status(201).json({ 
+      message: 'Invite token successfully generated.',
+      token: newInvite.token,
+      expiresAt: newInvite.expiresAt,
+    });
+
+  } catch (error) {
+    console.error('Error generating invite token:', error);
+    res.status(500).json({ message: 'Server error during token generation.' });
+  }
 };
 
 // Validates the invite token and adds the authenticated user to the group.
-// POST /api/groups/invite/accept
 export const acceptInvite = async (req, res) => {
-    // Get the token from the request body and the id of the user trying to join
     const { token } = req.body;
-    const joiningUserId = req.user.id; // User ID from the JWT token
+    const joiningUserId = req.user.id; 
 
     if (!token) {
-        res.status(400).json({ message: 'Invite token is required.' });
-        return;
+      res.status(400).json({ message: 'Invite token is required.' });
+      return;
     }
 
     try {
-        // Token validation
-        const invite = await Invite.findOne({ token });
+      // Token validation
+      const invite = await Invite.findOne({ token });
 
-        if (!invite) {
-            res.status(410).json({ message: 'Invite link is expired or invalid.' });
-            return;
-        }
+      if (!invite) {
+        res.status(410).json({ message: 'Invite link is expired or invalid.' });
+        return;
+      }
 
-        // Usage check
-        if (invite.maxUses !== -1 && invite.usesCount >= invite.maxUses) {
-            // Delete the invite since max uses have been reached
-            await Invite.findByIdAndDelete(invite._id);
-            res.status(410).json({ message: 'Invite link has reached its maximum usage limit.' });
-            return;
-        }
+      // Usage check
+      if (invite.maxUses !== -1 && invite.usesCount >= invite.maxUses) {
+          // Delete the invite since max uses have been reached
+          await Invite.findByIdAndDelete(invite._id);
+          res.status(410).json({ message: 'Invite link has reached its maximum usage limit.' });
+          return;
+      }
+      const group: IGroup | null = await Group.findById(invite.groupId);
+      if (!group) {
+        // Delete the invite if the group no longer exists
+        await Invite.findByIdAndDelete(invite._id);
+        res.status(404).json({ message: 'The linked group was not found.' });
+        return;
+      }
 
-        // Group & Membership Update
-        const group: IGroup | null = await Group.findById(invite.groupId);
+      // Create the member object
+      const joiningUser = await User.findById(joiningUserId);
+      if (!joiningUser) {
+        res.status(500).json({ message: 'Could not find joining user details.' });
+        return;
+      }
+      // Check if the user is already a member
+      const isAlreadyMember = group.members.some(
+        member => member.userId.toString() === joiningUserId.toString()
+      );
 
-        if (!group) {
-            // If the group no longer exists, delete the invite
-            await Invite.findByIdAndDelete(invite._id);
-            res.status(404).json({ message: 'The linked group was not found.' });
-            return;
-        }
-        // Create the member object
-        const joiningUser = await User.findById(joiningUserId);
-        if (!joiningUser) {
-            res.status(500).json({ message: 'Could not find joining user details.' });
-            return;
-        }
-        // Check if the user is already a member
-        const isAlreadyMember = group.members.some(
-            member => member.userId.toString() === joiningUserId.toString()
-        );
-
-        if (isAlreadyMember) {
-            res.status(200).json({ 
-                message: 'You are already a member of this group.',
-                group: group 
-            });
-            return;
-        }
-
-        // CONSTRUCT THE NEW MEMBER OBJECT
-        const newMember: GroupMember = {
-            userId: joiningUserId.toString(),
-            username: joiningUser.username,
-            role: 'member',
-            joinedAt: new Date()
-        };
-
-        // Add the new member object to the group's members array
-        group.members.push(newMember);
-
-        // Save the updated group
-        await group.save();
-
-        //Usage tracking and update
-        invite.usesCount += 1;
-        await invite.save();
-
-        // Delete the invite if the usage is at its maximum
-        if (invite.usesCount >= invite.maxUses) {
-            await Invite.findByIdAndDelete(invite._id);
-        }
-        res.status(200).json({
-            message: 'Successfully joined the group!',
-            group: group
+      if (isAlreadyMember) {
+        res.status(200).json({ 
+          message: 'You are already a member of this group.',
+          group: group 
         });
+        return;
+      }
+
+      const newMember: GroupMember = {
+        userId: joiningUserId.toString(),
+        username: joiningUser.username,
+        role: 'member',
+        joinedAt: new Date()
+      };
+
+      group.members.push(newMember);
+      await group.save();
+
+      invite.usesCount += 1;
+      await invite.save();
+
+      // Delete the invite if the usage is at its maximum
+      if (invite.usesCount >= invite.maxUses) {
+        await Invite.findByIdAndDelete(invite._id);
+      }
+      res.status(200).json({
+        message: 'Successfully joined the group!',
+        group: group
+      });
 
     } catch (error) {
-        console.error('Error accepting invite:', error);
-        res.status(500).json({ message: 'Server error while processing invite.' });
+      console.error('Error accepting invite:', error);
+      res.status(500).json({ message: 'Server error while processing invite.' });
     }
 };
 
 
 // Looks up invite details for a confirmation screen.
-// GET /api/groups/invite/lookup?token=ABC-123
-
 export const lookupInvite = async (req: Request, res: Response): Promise<void> => {
   const token = req.query.token as string; 
 
@@ -329,20 +299,20 @@ export const lookupInvite = async (req: Request, res: Response): Promise<void> =
     }
 
     res.status(200).json({
-        group: {
-            _id: group._id,
-            name: group.name,
-            memberCount: group.members.length,
-        },
-        invitation: {
-            groupId: invite.groupId,
-            createdBy: inviter.username,
-            isExpired: false,
-            maxUses: invite.maxUses,
-            usesCount: invite.usesCount,
-            token: invite.token
-        },
-        userIsAuthenticated: false 
+      group: {
+        _id: group._id,
+        name: group.name,
+        memberCount: group.members.length,
+      },
+      invitation: {
+        groupId: invite.groupId,
+        createdBy: inviter.username,
+        isExpired: false,
+        maxUses: invite.maxUses,
+        usesCount: invite.usesCount,
+        token: invite.token
+      },
+      userIsAuthenticated: false 
     });
 
   } catch (error) {
