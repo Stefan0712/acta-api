@@ -7,6 +7,8 @@ import crypto from 'crypto'; // built-in module for token generation
 import { GroupMember, Group as IGroup } from '../models/models';
 import ShoppingListItem from '../models/ShoppingListItem';
 import ShoppingList from '../models/ShoppingList';
+import Poll from '../models/Poll';
+import Note from '../models/Note';
 
 // Create a new group
 export const createGroup = async (req: AuthRequest, res: Response) => {
@@ -38,8 +40,36 @@ export const getMyGroups = async (req: AuthRequest, res: Response) => {
   try {
     const groups = await Group.find({
       'members.userId': req.user.id
-    })
-    res.status(200).json(groups);
+    }).lean();
+    const groupIds = groups.map(group => group._id);
+    const listCounts = await ShoppingList.aggregate([
+      { $match: { groupId: { $in: groupIds } }},
+      { $group: { _id: '$groupId', listCount: { $sum: 1 }}}
+    ]);
+    const noteCounts = await Note.aggregate([
+        { $match: { groupId: { $in: groupIds } } },
+        { $group: { _id: '$groupId', noteCount: { $sum: 1 } } }
+    ]);
+    const pollCounts = await Poll.aggregate([
+        { $match: { groupId: { $in: groupIds } } },
+        { $group: { _id: '$groupId', pollCount: { $sum: 1 } } }
+    ]);
+    const listsMap = new Map(listCounts.map(item => [item._id.toString(), item.listCount]));
+    const notesMap = new Map(noteCounts.map(item => [item._id.toString(), item.noteCount]));
+    const pollsMap = new Map(pollCounts.map(item => [item._id.toString(), item.pollCount]));
+
+    const finalGroups = groups.map(group => {
+      const id = group._id.toString();
+
+      return {
+        ...group,
+        listCount: listsMap.get(id) || 0,
+        noteCount: notesMap.get(id) || 0,
+        pollCount: pollsMap.get(id) || 0,
+        memberCount: group.members.length
+      };
+    });
+    res.status(200).json(finalGroups);
   } catch (error) {
     console.error('Get Groups Error:', error);
     res.status(500).json({ message: 'Server error fetching groups' });

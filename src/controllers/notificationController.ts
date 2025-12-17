@@ -5,7 +5,16 @@ import { AuthRequest } from '../middleware/authMiddleware';
 export const getNotifications = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user.id;
-    const notifications = await Notification.find({ recipientId: userId })
+    const { lastSyncTime } = req.query; // Get the timestamp from the frontend
+
+    let query: any = { recipientId: userId };
+
+    // Only fetch if created AFTER the last sync
+    if (lastSyncTime) {
+      query.createdAt = { $gt: new Date(lastSyncTime as string) };
+    }
+
+    const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
       .limit(50); 
 

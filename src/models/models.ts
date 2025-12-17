@@ -1,4 +1,4 @@
-import { Document } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export interface ShoppingList extends Document {
     name: string;
@@ -186,22 +186,22 @@ export type ActivityCategory =
   | 'CONTENT'     // Items, notes, polls, lists
   | 'INTERACTION'; // Assignments, claims
 
-export interface ActivityLog {
+export interface ActivityLogData {
     _id: string;
     groupId: string;
     createdAt: Date;
     category: ActivityCategory; // Just for basic filtering if needed
-    
+    activityId?: string;
     message: string;            // The text to display
     authorId: string;
     authorName: string; // Denormalized name
 
     // Metadata for clicking (optional)
     metadata?: {
-        listId?: string;
-        itemId?: string;
-        noteId?: string;
-        pollId?: string;
+        listId?: Types.ObjectId;
+        itemId?: Types.ObjectId;
+        noteId?: Types.ObjectId;
+        pollId?: Types.ObjectId;
     };
     isDirty: boolean;
 }

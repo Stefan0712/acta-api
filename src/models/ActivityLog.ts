@@ -4,7 +4,6 @@ export type ActivityCategory = 'GROUP' | 'CONTENT' | 'INTERACTION';
 
 export interface IActivityLog extends Document {
   groupId: mongoose.Types.ObjectId;
-  createdAt: Date;
   category: ActivityCategory;
   
   message: string;
@@ -31,10 +30,10 @@ const ActivityLogSchema: Schema = new Schema(
     },
     message: { type: String, required: true },
     metadata: {
-      listId: String,
-      itemId: String,
-      noteId: String,
-      pollId: String
+      listId: { type: Schema.Types.ObjectId, ref: 'ShoppingList' },
+      itemId: { type: Schema.Types.ObjectId, ref: 'ShoppingListItem' },
+      noteId: { type: Schema.Types.ObjectId, ref: 'Note' },
+      pollId: { type: Schema.Types.ObjectId, ref: 'Poll' },
     }
   },
   { timestamps: true }

@@ -3,6 +3,7 @@ import ShoppingListItem from '../models/ShoppingListItem';
 import ShoppingList from '../models/ShoppingList';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { userIsMember } from '../utilities/groupUtilities';
+import { logActivity } from '../utilities/logActivity';
 
 
 // Create one item
@@ -37,7 +38,20 @@ export const createItem = async (req: AuthRequest, res: Response) => {
       isReminderSent: false,
       isDeleted: false
     });
-
+    if(list.groupId){
+      try {
+        await logActivity({
+          groupId: list.groupId,
+          authorId: req.user.id,
+          authorName: req.user.username,
+          category: 'CONTENT',
+          message: `${req.user.username} created "${newItem.name} in ${list.name}"`,
+          metadata: { listId: newItem.listId }
+        });
+      } catch (logError) {
+        console.error("Activity logging failed, but list was created:", logError);
+      }
+    }
     res.status(201).json(newItem);
 
   } catch (error) {
@@ -85,12 +99,10 @@ export const updateItem = async (req: AuthRequest, res: Response) => {
 
     // Find parent
     const parentList = await ShoppingList.findById(item.listId).select('authorId groupId');
-
     if (!parentList) {
       // In case there is no parent list
       return res.status(404).json({ message: 'Item\'s parent list not found' });
     }
-
     let isAuthorized = false;
 
     // Is the user the author
@@ -121,6 +133,20 @@ export const updateItem = async (req: AuthRequest, res: Response) => {
       req.body, 
       { new: true }
     );
+    if(parentList.groupId){
+      try {
+        await logActivity({
+          groupId: parentList.groupId,
+          authorId: req.user.id,
+          authorName: req.user.username,
+          category: 'CONTENT',
+          message: `${req.user.username} updated "${item.name}" in ${parentList.name}`,
+          metadata: { listId: parentList._id }
+        });
+      } catch (logError) {
+        console.error("Activity logging failed, but list was created:", logError);
+      }
+    }
 
     res.status(200).json(updatedItem);
 
@@ -136,10 +162,9 @@ export const deleteItem = async (req: AuthRequest, res: Response) => {
 
     const item = await ShoppingListItem.findById(id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
-
+    const parentList = await ShoppingList.findById(item.listId);
     // Security Check
     if (item.authorId.toString() !== req.user.id) {
-        const parentList = await ShoppingList.findById(item.listId);
         if (parentList && parentList.authorId.toString() !== req.user.id) {
           return res.status(403).json({ message: 'Not authorized' });
       }
@@ -147,7 +172,20 @@ export const deleteItem = async (req: AuthRequest, res: Response) => {
 
     item.isDeleted = true;
     await item.save();
-
+    if(parentList?.groupId){
+      try {
+        await logActivity({
+          groupId: parentList.groupId,
+          authorId: req.user.id,
+          authorName: req.user.username,
+          category: 'CONTENT',
+          message: `${req.user.username} edited "${item.name}" from ${parentList.name}`,
+          metadata: { listId: item._id }
+        });
+      } catch (logError) {
+        console.error("Activity logging failed, but list was created:", logError);
+      }
+    }
     res.status(200).json({ message: 'Item deleted', id: item._id });
 
   } catch (error) {

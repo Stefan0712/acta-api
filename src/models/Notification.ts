@@ -9,7 +9,6 @@ export interface INotification extends Document {
   category: NotificationCategory;
   message: string;
   isRead: boolean;
-  createdAt: Date;
   metadata?: {
     listId?: string;
     itemId?: string;
@@ -33,10 +32,10 @@ const NotificationSchema: Schema = new Schema(
     isRead: { type: Boolean, default: false },
     
     metadata: {
-      listId: String,
-      itemId: String,
-      noteId: String,
-      pollId: String
+      listId: { type: Schema.Types.ObjectId, ref: 'ShoppingList' },
+      itemId: { type: Schema.Types.ObjectId, ref: 'ShoppingListItem' },
+      noteId: { type: Schema.Types.ObjectId, ref: 'Note' },
+      pollId: { type: Schema.Types.ObjectId, ref: 'Poll' },
     }
   },
   { timestamps: true }
