@@ -38,7 +38,10 @@ const ShoppingListSchema: Schema = new Schema(
       type: Boolean, 
       default: false 
     },
-    
+    icon: {
+      type: String,
+      default: 'default-icon'
+    }
   },
   { 
     timestamps: true 

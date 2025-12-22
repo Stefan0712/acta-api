@@ -45,7 +45,7 @@ export const createItem = async (req: AuthRequest, res: Response) => {
           authorId: req.user.id,
           authorName: req.user.username,
           category: 'CONTENT',
-          message: `${req.user.username} created "${newItem.name} in ${list.name}"`,
+          message: `${req.user.username} created "${newItem.name}" in ${list.name}`,
           metadata: { listId: newItem.listId }
         });
       } catch (logError) {

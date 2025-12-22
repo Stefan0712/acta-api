@@ -8,6 +8,7 @@ export const logActivity = async (input: any): Promise<void> => {
             return;
         }
 
+        console.log(input)
         // 1. Create a new instance
         const logEntry = new ActivityLog(input);
 

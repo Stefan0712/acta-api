@@ -18,6 +18,18 @@ const GroupSchema: Schema = new Schema(
       ref: 'User', 
       required: true 
     },
+    icon: {
+      type: String,
+      default: 'default-icon'
+    },
+    color: {
+      type: String,
+      default: 'white'
+    },
+    isPinned: {
+      type: Boolean,
+      default: false
+    },
     members: [
       {
         _id: false,

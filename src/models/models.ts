@@ -12,6 +12,7 @@ export interface ShoppingList extends Document {
     isDirty: boolean;
     authorId: string;
     clientId?: string;
+    icon: string;
 }
 
 export interface Product {

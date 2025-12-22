@@ -30,10 +30,11 @@ app.use(express.json()); // Parse JSON bodies
 
 const FRONTEND_IP = process.env.FRONT_END_IP; 
 const LOCALHOST_DEV = 'http://localhost:5173';
-const REPO_URL = 'https://stefan0712.github.io/docket/'
-const GITHUB_URL = 'https://stefan0712.github.io'
+const LOCALHOST_DEV2 = 'http://192.168.178.129:5173';
+const REPO_URL = 'https://stefan0712.github.io/docket/';
+const GITHUB_URL = 'https://stefan0712.github.io';
 
-const allowedOrigins = [FRONTEND_IP, LOCALHOST_DEV, REPO_URL, GITHUB_URL];
+const allowedOrigins = [FRONTEND_IP, LOCALHOST_DEV, REPO_URL, GITHUB_URL, LOCALHOST_DEV2];
 
 const corsOptions = {
   origin: (origin, callback) => {
