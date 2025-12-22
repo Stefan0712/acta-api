@@ -22,7 +22,7 @@ export const createNote = async (req: AuthRequest, res: Response) => {
     const newNote = await Note.create({
       groupId,
       authorId: req.user.id,
-      title,
+      title: title ?? "Untitled Note",
       content,
       comments: []
     });

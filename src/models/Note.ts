@@ -22,7 +22,7 @@ const NoteSchema: Schema = new Schema(
   {
     groupId: { type: Schema.Types.ObjectId, ref: 'Group', required: true },
     authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    title: { type: String, required: true, trim: true },
+    title: { type: String, default: 'Untitled Note', trim: true },
     content: { type: String, required: true },
     comments: [
       {
