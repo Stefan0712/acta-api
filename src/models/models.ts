@@ -126,17 +126,17 @@ export interface NoteComment {
     username: string;
     content: string;
     createdAt: string;
+    noteId: string;
     isDirty: boolean;
 }
 
 export interface Note {
     _id: string;
-    groupdId: string;
+    groupId: string;
     authorId: string;
     title: string;
     content: string;
     createdAt: Date;
-    comments: NoteComment[];
     isDirty: boolean;
 }
 

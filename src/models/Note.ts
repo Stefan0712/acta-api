@@ -1,22 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
-
-export interface INoteComment {
-  _id: string;
-  authorId: mongoose.Types.ObjectId;
-  username: string;
-  content: string;
-  createdAt: Date;
-}
-
-export interface INote extends Document {
-  groupId: mongoose.Types.ObjectId;
-  authorId: mongoose.Types.ObjectId;
-  title: string;
-  content: string;
-  comments: INoteComment[];
-  createdAt: Date;
-  updatedAt: Date;
-}
+import mongoose, { Schema } from 'mongoose';
+import { Note } from './models';
 
 const NoteSchema: Schema = new Schema(
   {
@@ -24,18 +7,11 @@ const NoteSchema: Schema = new Schema(
     authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     title: { type: String, default: 'Untitled Note', trim: true },
     content: { type: String, required: true },
-    comments: [
-      {
-        authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-        username: { type: String, required: true },
-        content: { type: String, required: true },
-        createdAt: { type: Date, default: Date.now }
-      }
-    ]
+    isDirty: {type: Boolean, default: false},
   },
   { timestamps: true }
 );
 
 NoteSchema.index({ groupId: 1 });
 
-export default mongoose.model<INote>('Note', NoteSchema);
+export default mongoose.model<Note>('Note', NoteSchema);
