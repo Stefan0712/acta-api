@@ -15,7 +15,7 @@ const isMember = async (groupId: string, userId: string): Promise<boolean> => {
 
 export const createNote = async (req: AuthRequest, res: Response) => {
   try {
-    const { groupId, title, content } = req.body;
+    const { groupId, title, content, isPinned} = req.body;
 
     if (!await isMember(groupId, req.user.id)) {
         return res.status(403).json({ message: 'Not authorized to post in this group' });
@@ -26,6 +26,7 @@ export const createNote = async (req: AuthRequest, res: Response) => {
       authorId: req.user.id,
       title: title ?? "Untitled Note",
       content,
+      isPinned: isPinned ?? false
     });
 
     res.status(201).json(newNote);
@@ -78,7 +79,7 @@ export const getNote = async (req: AuthRequest, res: Response) => {
     if (!id) {
       return res.status(400).json({ message: 'Note ID required' });
     }
-    const note = await Note.findById(id).populate('authorId', 'username avatarUrl') // Show who wrote it
+    const note = await Note.findById(id).populate('authorId', 'username avatarUrl').lean();
 
     // Verify Group Membership
     if (note && !await isMember(note.groupId as string, req.user.id)) {
@@ -96,7 +97,7 @@ export const getNote = async (req: AuthRequest, res: Response) => {
 export const updateNote = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, content } = req.body;
+    const { title, content, isDeleted, isPinned } = req.body;
 
     const note = await Note.findById(id);
     if (!note) return res.status(404).json({ message: 'Note not found' });
@@ -108,6 +109,8 @@ export const updateNote = async (req: AuthRequest, res: Response) => {
 
     note.title = title || note.title;
     note.content = content || note.content;
+    note.isDeleted = isDeleted || false;
+    note.isPinned = isPinned || false;
     await note.save();
 
     res.status(200).json(note);
@@ -127,7 +130,7 @@ export const deleteNote = async (req: AuthRequest, res: Response) => {
     if (!note) return res.status(404).json({ message: 'Note not found' });
 
     if (note.authorId.toString() !== req.user.id) {
-        return res.status(403).json({ message: 'Not authorized to delete this note' });
+      return res.status(403).json({ message: 'Not authorized to delete this note' });
     }
 
     await note.deleteOne();
@@ -149,7 +152,7 @@ export const deleteNote = async (req: AuthRequest, res: Response) => {
 export const addComment = async (req: AuthRequest, res: Response) => {
   try {
     const { noteId } = req.params;
-    const { content, authorId, username } = req.body;
+    const { content, username } = req.body;
     const updatedNote = await Note.findByIdAndUpdate(
       noteId,
       { $inc: { commentCount: 1 } },
@@ -159,7 +162,7 @@ export const addComment = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'Note not found to update count' });
     }
 
-    const newComment = await NoteComment.create({content, authorId, username, noteId});
+    const newComment = await NoteComment.create({content, authorId: req.user.id, username, noteId});
 
     if(newComment) {
       

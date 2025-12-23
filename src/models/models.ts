@@ -138,6 +138,8 @@ export interface Note {
     content: string;
     createdAt: Date;
     isDirty: boolean;
+    isPinned: boolean;
+    isDeleted: boolean;
 }
 
 export interface Vote {
