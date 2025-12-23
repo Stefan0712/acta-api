@@ -50,10 +50,21 @@ export const getNotes = async (req: AuthRequest, res: Response) => {
     }
 
     const notes = await Note.find({ groupId })
-      .populate('author', 'username avatarUrl') // Show who wrote it
-      .sort({ createdAt: -1 });
+      .populate('authorId', 'username avatarUrl') // Show who wrote it
+      .sort({ createdAt: -1 })
+      .lean();
+    
+      const flattenedNotes = notes.map(note => {
+      const author = note.authorId as any; 
+      
+      return {
+        ...note,
+        authorId: author?._id || note.authorId,
+        authorUsername: author?.username || 'Unknown'
+      };
+    });
 
-    res.status(200).json(notes);
+    res.status(200).json(flattenedNotes);
 
   } catch (error) {
     console.error(error);
@@ -62,18 +73,19 @@ export const getNotes = async (req: AuthRequest, res: Response) => {
 };
 export const getNote = async (req: AuthRequest, res: Response) => {
   try {
-    const { noteId } = req.query;
+    const { id } = req.params;
 
-    if (!noteId) {
+    if (!id) {
       return res.status(400).json({ message: 'Note ID required' });
     }
-    const note = await Note.findById(noteId).populate('author', 'username avatarUrl') // Show who wrote it
+    const note = await Note.findById(id).populate('authorId', 'username avatarUrl') // Show who wrote it
 
     // Verify Group Membership
     if (note && !await isMember(note.groupId as string, req.user.id)) {
       return res.status(403).json({ message: 'Not authorized to view these notes' });
     }
-    res.status(200).json(note);
+    const tempAuthor = note?.authorId as any;
+    res.status(200).json({...note, authorId: tempAuthor?._id, authorUsername: tempAuthor?.username});
 
   } catch (error) {
     console.error(error);
