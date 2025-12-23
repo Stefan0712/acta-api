@@ -50,10 +50,30 @@ export const getNotes = async (req: AuthRequest, res: Response) => {
     }
 
     const notes = await Note.find({ groupId })
-      .populate('authorId', 'username avatarUrl') // Show who wrote it
+      .populate('author', 'username avatarUrl') // Show who wrote it
       .sort({ createdAt: -1 });
 
     res.status(200).json(notes);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching notes' });
+  }
+};
+export const getNote = async (req: AuthRequest, res: Response) => {
+  try {
+    const { noteId } = req.query;
+
+    if (!noteId) {
+      return res.status(400).json({ message: 'Note ID required' });
+    }
+    const note = await Note.findById(noteId).populate('author', 'username avatarUrl') // Show who wrote it
+
+    // Verify Group Membership
+    if (note && !await isMember(note.groupId as string, req.user.id)) {
+      return res.status(403).json({ message: 'Not authorized to view these notes' });
+    }
+    res.status(200).json(note);
 
   } catch (error) {
     console.error(error);
@@ -71,7 +91,7 @@ export const updateNote = async (req: AuthRequest, res: Response) => {
 
     // Only Author can edit
     if (note.authorId.toString() !== req.user.id) {
-        return res.status(403).json({ message: 'Not authorized to edit this note' });
+      return res.status(403).json({ message: 'Not authorized to edit this note' });
     }
 
     note.title = title || note.title;
@@ -135,7 +155,7 @@ export const addComment = async (req: AuthRequest, res: Response) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error adding note comment' });
+    res.status(500).json({ message: 'Server error adding note comment' , error});
   }
 };
 

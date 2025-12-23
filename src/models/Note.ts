@@ -8,6 +8,7 @@ const NoteSchema: Schema = new Schema(
     title: { type: String, default: 'Untitled Note', trim: true },
     content: { type: String, required: true },
     isDirty: {type: Boolean, default: false},
+    commentCount: {type: Number, default: 0}
   },
   { timestamps: true }
 );

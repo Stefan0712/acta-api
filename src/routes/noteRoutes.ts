@@ -6,7 +6,8 @@ import {
   deleteNote, 
   addComment,
   deleteComment,
-  getNoteComments
+  getNoteComments,
+  getNote
 } from '../controllers/noteController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -20,10 +21,11 @@ router.route('/')
 
 router.route('/:id')
   .put(updateNote)
-  .delete(deleteNote);
+  .delete(deleteNote)
+  .get(getNote)
 
 router.route('/:noteId/comment')
-  .put(addComment)
+  .post(addComment)
 router.route('/:noteId/comment/:commentId')
   .delete(deleteComment);
 router.route('/:noteId/comments')
