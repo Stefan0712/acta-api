@@ -33,6 +33,32 @@ export const createPoll = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const updatePoll = async (req: AuthRequest, res: Response) => {
+  try {
+    const { title, description, expiresAt, allowCustomOptions, options } = req.body;
+    const poll = await Poll.findById(req.params.id);
+
+    if (!poll) return res.status(404).json({ message: "Poll not found" });
+
+    if (poll.authorId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to edit this poll" });
+    }
+
+    // Update metadata fields
+    if (title) poll.title = title;
+    if (description !== undefined) poll.description = description;
+    if (expiresAt) poll.expiresAt = new Date(expiresAt);
+    if (allowCustomOptions !== undefined) poll.allowCustomOptions = allowCustomOptions;
+    if (options) poll.options = options;
+
+    // Save the changes
+    const updatedPoll = await poll.save();
+    
+    res.json(updatedPoll);
+  } catch (error) {
+    res.status(500).json({ message: "Update failed", error });
+  }
+};
 export const getGroupPolls = async (req: AuthRequest, res: Response) => {
   try {
     const polls = await Poll.find({ groupId: req.params.groupId }).sort({ createdAt: -1 }).lean();
@@ -60,7 +86,7 @@ export const votePoll = async (req: AuthRequest, res: Response) => {
     const poll = await Poll.findById(pollId);
     if (!poll) return res.status(404).json({ message: "Poll not found" });
 
-    if (poll.isClosed || new Date(poll.expiresAt) < new Date()) {
+    if (poll.isClosed || (poll.expiresAt && new Date(poll.expiresAt) < new Date())) {
       return res.status(400).json({ message: "Poll is closed" });
     }
 
@@ -87,7 +113,7 @@ export const addPollOption = async (req: AuthRequest, res: Response) => {
     const poll = await Poll.findById(pollId);
 
     if (!poll) return res.status(404).json({ message: "Poll not found" });
-    if (!poll.allowCustomOptions) return res.status(403).json({ message: "Forbidden" });
+    if (!poll.allowCustomOptions && poll.authorId.toString() !== req.user.id) return res.status(403).json({ message: "Forbidden" });
 
     poll.options.push({ text, votes: [] });
     const savedPoll = await poll.save();

@@ -44,8 +44,8 @@ const ShoppingListItemSchema: Schema = new Schema(
     name: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
     
-    qty: { type: Number, default: 1 },
-    unit: { type: String, default: 'pcs' },
+    qty: { type: Number},
+    unit: { type: String},
     isChecked: { type: Boolean, default: false },
     
     productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null },

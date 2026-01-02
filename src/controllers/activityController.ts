@@ -29,7 +29,6 @@ export const getGroupActivity = async (req: AuthRequest, res: Response) => {
     // Get Total Count
     const total = await ActivityLog.countDocuments({ groupId });
 
-    console.log(logs)
     res.status(200).json({
       data: logs,
       pagination: {

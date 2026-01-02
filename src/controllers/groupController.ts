@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import Group from '../models/Group';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/authMiddleware';
 import Invite, { IInvite } from '../models/Invite';
@@ -9,18 +8,25 @@ import ShoppingListItem from '../models/ShoppingListItem';
 import ShoppingList from '../models/ShoppingList';
 import Poll from '../models/Poll';
 import Note from '../models/Note';
+import Group from '../models/Group';
+import mongoose from 'mongoose';
+import { hasRole } from '../utilities/permissions';
 
 // Create a new group
 export const createGroup = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description } = req.body;
-    const newGroup = await Group.create({
+    const { name, description, icon, color, isPinned } = req.body;
+    const userId = new mongoose.Types.ObjectId(req.user.id);
+    const newGroup: IGroup = await Group.create({
       name,
       description,
-      authorId: req.user.id,
+      authorId: userId,
+      icon,
+      color,
+      isPinned,
       members: [
         {
-          userId: req.user.id,
+          userId,
           role: 'owner',
           joinedAt: new Date(),
         }
@@ -140,7 +146,7 @@ export const leaveGroup = async (req: AuthRequest, res: Response) => {
     );
 
     if (group.members.length === initialCount) {
-       return res.status(400).json({ message: 'You are not in this group' });
+      return res.status(400).json({ message: 'You are not in this group' });
     }
 
     if (group.members.length === 0) {
@@ -184,10 +190,14 @@ export const generateInviteToken = async (req, res) => {
       res.status(404).json({ message: 'Group not found.' });
       return;
     }
-    const isMember = group.members.some(member => member.userId.toString() === currentUserId.toString());
-    if (!isMember) {
-      res.status(403).json({ message: 'Not authorized to generate invites for this group.' });
+    const member = group.members.find((m) => m.userId.toString() === req.user.id)
+
+    if (!member) {
+      res.status(403).json({ message: 'You are not a member.' });
       return;
+    }
+    if (!hasRole(member, 'moderator')) {
+      return res.status(403).json({ message: 'Only moderators can create invites' });
     }
     
     // Generate token and save to db
@@ -368,13 +378,13 @@ export const deleteGroup = async (req: AuthRequest, res: Response) => {
     const group = await Group.findById(groupId);
 
     if (!group) return res.status(404).json({ message: 'Group not found' });
-    let isAuthorized;
-    if (group.authorId.toString() === req.user.id) {
-      isAuthorized = true;
-    }
 
-    if (!isAuthorized) {
-      return res.status(403).json({ message: 'Not authorized' });
+    const member = group.members.find(
+      (m) => m.userId.toString() === req.user.id
+    );
+
+    if (!hasRole(member, 'owner')) {
+      return res.status(403).json({ message: 'Only owners can delete the group' });
     }
         
     const listsToDelete = await ShoppingList.find({ groupId: group._id.toString() }).select('_id');
@@ -416,9 +426,12 @@ export const updateGroup = async (req: AuthRequest, res: Response) => {
 
     if (!group) return res.status(404).json({ message: 'Group not found' });
 
-    // Security Check
-    if (group.authorId.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
+    const member = group.members.find(
+      (m) => m.userId.toString() === req.user.id
+    );
+    
+    if (!hasRole(member, 'owner')) {
+      return res.status(403).json({ message: 'Only owners can edit the group' });
     }
 
     // Update fields

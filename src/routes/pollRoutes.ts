@@ -5,7 +5,8 @@ import {
   getPollById, 
   votePoll, 
   addPollOption, 
-  deletePoll 
+  deletePoll, 
+  updatePoll
 } from '../controllers/pollController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -18,5 +19,6 @@ router.get('/:id', getPollById);
 router.delete('/:id', deletePoll);
 router.post('/vote', votePoll);
 router.post('/option', addPollOption);
+router.patch('/:id', updatePoll);
 
 export default router;

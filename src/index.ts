@@ -66,7 +66,7 @@ mongoose.connect(MONGO_URI)
 
 // Routes
 app.get('/', (req, res) => {
-  res.send('Docket API is running');
+  res.status(200).json({ status: 'ok', message: 'API is running' });
 });
 
 app.use('/api/auth', authRoutes);

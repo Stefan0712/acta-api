@@ -28,8 +28,8 @@ export const createItem = async (req: AuthRequest, res: Response) => {
       listId,
       authorId: req.user.id,
       name,
-      qty: qty || 1,
-      unit: unit || 'pcs',
+      qty,
+      unit,
       category,
       store,
       priority: priority || 'normal',
@@ -98,7 +98,7 @@ export const updateItem = async (req: AuthRequest, res: Response) => {
     if (!item) return res.status(404).json({ message: 'Item not found' });
 
     // Find parent
-    const parentList = await ShoppingList.findById(item.listId).select('authorId groupId');
+    const parentList = await ShoppingList.findById(item.listId).select('authorId groupId name');
     if (!parentList) {
       // In case there is no parent list
       return res.status(404).json({ message: 'Item\'s parent list not found' });

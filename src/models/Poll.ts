@@ -14,7 +14,7 @@ const PollSchema = new Schema({
   description: { type: String, trim: true },
   options: [PollOptionSchema],
   allowCustomOptions: { type: Boolean, default: false },
-  expiresAt: { type: Date, required: true },
+  expiresAt: { type: Date, required: false },
   isClosed: { type: Boolean, default: false },
   
   clientId: { type: String, default: null } 

@@ -103,7 +103,7 @@ export interface User {
 export type GroupRole = 'owner' | 'moderator' | 'member' | 'guest';
 
 export interface GroupMember {
-    userId: string;
+    userId: string | Types.ObjectId;
     username: string;
     role: GroupRole;
     joinedAt: Date;
@@ -112,11 +112,14 @@ export interface GroupMember {
 export interface Group extends Document {
     name: string;
     description?: string;
-    authorId: string;
+    authorId: string | Types.ObjectId;
     members: GroupMember[];
     isDirty: boolean;
     isDeleted: boolean;
     createdAt: string;
+    color: string;
+    icon: string;
+    isPinned: boolean;
     updatedAt: string;
 }
 
