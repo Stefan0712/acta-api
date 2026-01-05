@@ -150,8 +150,7 @@ export const leaveGroup = async (req: AuthRequest, res: Response) => {
     }
 
     if (group.members.length === 0) {
-      await Group.findByIdAndDelete(id);
-      return res.status(200).json({ message: 'Group deleted as last member left' });
+      return res.status(400).json({ message: 'You cannot leave since you are the only one left. Delete the group instead' });
     }
 
     await group.save();

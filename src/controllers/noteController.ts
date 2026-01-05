@@ -3,7 +3,6 @@ import Note from '../models/Note';
 import Group from '../models/Group';
 import { AuthRequest } from '../middleware/authMiddleware';
 import NoteComment from '../models/NoteComment';
-import { Note as INote } from '../models/models';
 
 const isMember = async (groupId: string, userId: string): Promise<boolean> => {
     const group = await Group.findOne({ 
@@ -15,21 +14,21 @@ const isMember = async (groupId: string, userId: string): Promise<boolean> => {
 
 export const createNote = async (req: AuthRequest, res: Response) => {
   try {
-    const { groupId, title, content, isPinned} = req.body;
+    const { groupId, title, content, isPinned, authorUsername} = req.body;
 
     if (!await isMember(groupId, req.user.id)) {
         return res.status(403).json({ message: 'Not authorized to post in this group' });
     }
 
-    const newNote: INote = await Note.create({
+    const newNote = await Note.create({
       groupId,
       authorId: req.user.id,
-      title: title ?? "Untitled Note",
+      title: title || "Untitled Note",
       content,
       isPinned: isPinned ?? false
     });
 
-    res.status(201).json(newNote);
+    res.status(201).json({...newNote.toObject(), authorUsername});
 
   } catch (error) {
     console.error(error);

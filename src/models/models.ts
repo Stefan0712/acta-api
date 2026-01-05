@@ -15,21 +15,6 @@ export interface ShoppingList extends Document {
     icon: string;
 }
 
-export interface Product {
-    _id: string;
-    name: string;
-    createdAt: Date;
-    description?: string;
-    defaultQty: number; 
-    unit: string;
-    categoryId: string;
-    authorId: string;
-    storeIds?: string[];
-    tags?: string[];
-    isDeleted: boolean;
-    isDirty: boolean;
-}
-
 export interface ShoppingListItem {
     _id: string;
     createdAt: Date;

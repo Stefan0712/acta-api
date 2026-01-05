@@ -81,7 +81,7 @@ const ShoppingListItemSchema: Schema = new Schema(
 );
 
 ShoppingListItemSchema.index({ listId: 1 });
-ShoppingListItemSchema.index({ assignedTo: 1 });
+ShoppingListItemSchema.index({ assignedTo: 1, isChecked: 1 });
 ShoppingListItemSchema.index({ deadline: 1 });
 
 export default mongoose.model<IShoppingListItem>('ShoppingListItem', ShoppingListItemSchema);
