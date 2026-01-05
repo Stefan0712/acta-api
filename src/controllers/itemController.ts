@@ -5,6 +5,7 @@ import { AuthRequest } from '../middleware/authMiddleware';
 import { userIsMember } from '../utilities/groupUtilities';
 import { logActivity } from '../utilities/logActivity';
 import Group from '../models/Group';
+import { createNotification } from '../utilities/notificationHelpers';
 
 
 // Create one item
@@ -89,7 +90,6 @@ export const getItems = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// This handles: Checking off, Renaming, Assigning, Changing Qty, r any other update
 export const updateItem = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -375,16 +375,24 @@ export const assignItem = async (req: AuthRequest, res: Response) => {
          return res.status(400).json({ message: 'Cannot assign item to non-group member' });
        }
     }
-
-    item.assignedTo = assignedTo;
+    if ( assignedTo === userId) {
+      item.claimedBy = userId;
+    } else {
+      item.assignedTo = assignedTo;
+    }
     await item.save();
 
     if (parentList.groupId) {
+      
       try {
-        const actionMessage = assignedTo 
-          ? `${req.user.username} assigned "${item.name}" to a member`
-          : `${req.user.username} unassigned "${item.name}"`;
-
+        let actionMessage;
+        if ( assignedTo === userId) {
+          actionMessage = `${req.user.username} claimed ${item.name}`
+        } else {
+          actionMessage = assignedTo 
+            ? `${req.user.username} assigned ${item.name} to a member`
+            : `${req.user.username} unassigned "${item.name}"`;
+        }
         await logActivity({
           groupId: parentList.groupId,
           authorId: req.user.id,
@@ -392,13 +400,23 @@ export const assignItem = async (req: AuthRequest, res: Response) => {
           category: 'CONTENT',
           message: actionMessage,
           metadata: { 
-             listId: parentList._id,
-             assignedTo: assignedTo, 
-             action: 'ASSIGN'
+            listId: parentList._id,
+            assignedTo: assignedTo, 
+            action: 'ASSIGN'
           }
         });
-        
-
+        if( assignedTo !== userId) {
+          await createNotification({
+            recipientId: assignedTo,
+            groupId: parentList.groupId,
+            category: "ASSIGNMENT",
+            message: `Item ${item.name} was assigned to you`,
+            metadata: {
+              listId: parentList._id,
+              itemId: item._id
+            }
+          })
+        }
       } catch (logError) {
         console.error("Activity logging failed:", logError);
       }
