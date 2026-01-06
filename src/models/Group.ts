@@ -1,7 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import { Group } from './models';
 
-
 const GroupSchema: Schema = new Schema(
   {
     name: { 
@@ -26,10 +25,6 @@ const GroupSchema: Schema = new Schema(
       type: String,
       default: 'white'
     },
-    isPinned: {
-      type: Boolean,
-      default: false
-    },
     members: [
       {
         _id: false,
@@ -46,6 +41,17 @@ const GroupSchema: Schema = new Schema(
         joinedAt: { 
           type: Date, 
           default: Date.now 
+        },
+        isPinned: {
+          type: Boolean,
+          default: false
+        },
+        notificationPreferences: {
+          ASSIGNMENT: { type: Boolean, default: true },
+          MENTION: { type: Boolean, default: true },
+          GROUP: { type: Boolean, default: true },
+          REMINDER: { type: Boolean, default: true },
+          POLL: { type: Boolean, default: true },
         }
       }
     ]
@@ -53,6 +59,5 @@ const GroupSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-GroupSchema.index({ 'members.userId': 1 });
 
 export default mongoose.model<Group>('Group', GroupSchema);

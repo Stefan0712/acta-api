@@ -6,19 +6,24 @@ import {
   votePoll, 
   addPollOption, 
   deletePoll, 
-  updatePoll
+  updatePoll,
+  endPoll
 } from '../controllers/pollController';
 import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
 router.use(protect);
-router.get('/group/:groupId', getGroupPolls);
-router.post('/', createPoll);
-router.get('/:id', getPollById);
-router.delete('/:id', deletePoll);
+
 router.post('/vote', votePoll);
 router.post('/option', addPollOption);
-router.patch('/:id', updatePoll);
+router.get('/group/:groupId', getGroupPolls);
+
+router.post('/', createPoll);
+router.patch('/:id/end', endPoll);
+
+router.get('/:id', getPollById);  
+router.patch('/:id', updatePoll); 
+router.delete('/:id', deletePoll);
 
 export default router;

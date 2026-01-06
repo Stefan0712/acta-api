@@ -1,10 +1,10 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface INotificationMetadata {
-  listId?: mongoose.Types.ObjectId;
-  itemId?: mongoose.Types.ObjectId;
-  noteId?: mongoose.Types.ObjectId;
-  pollId?: mongoose.Types.ObjectId;
+  listId?: mongoose.Types.ObjectId | string;
+  itemId?: mongoose.Types.ObjectId | string;
+  noteId?: mongoose.Types.ObjectId | string;
+  pollId?: mongoose.Types.ObjectId | string;
 }
 
 export interface INotification extends Document {

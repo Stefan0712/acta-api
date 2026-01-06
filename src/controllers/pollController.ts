@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Poll from '../models/Poll';
 import Group from '../models/Group';
 import { AuthRequest } from '../middleware/authMiddleware';
+import { notifyGroup } from 'src/utilities/notificationHelpers';
 
 const isMember = async (groupId: string, userId: string) => {
     const group = await Group.findOne({ _id: groupId, 'members.userId': userId });
@@ -25,6 +26,15 @@ export const createPoll = async (req: AuthRequest, res: Response) => {
       options: options.map((text: string) => ({ text, votes: [] })),
       allowCustomOptions,
       expiresAt,
+    });
+    notifyGroup({
+      groupId: groupId,
+      authorId: req.user.id,
+      category: 'POLL',
+      message: `${req.user.name} created a new poll: "${title}"`,
+      metadata: { 
+        pollId: newPoll._id 
+      }
     });
 
     res.status(201).json(newPoll);
@@ -57,6 +67,27 @@ export const updatePoll = async (req: AuthRequest, res: Response) => {
     res.json(updatedPoll);
   } catch (error) {
     res.status(500).json({ message: "Update failed", error });
+  }
+};
+
+// End poll
+export const endPoll = async (req: AuthRequest, res: Response) => {
+  try {
+    const poll = await Poll.findById(req.params.id);
+
+    if (!poll) return res.status(404).json({ message: "Poll not found" });
+
+    if (poll.authorId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to edit this poll" });
+    }
+
+    poll.isClosed = true;
+
+    // Save the changes
+    const updatedPoll = await poll.save();
+    res.json(updatedPoll);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to end poll", error });
   }
 };
 export const getGroupPolls = async (req: AuthRequest, res: Response) => {

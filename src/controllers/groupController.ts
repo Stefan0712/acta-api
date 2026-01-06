@@ -23,12 +23,19 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
       authorId: userId,
       icon,
       color,
-      isPinned,
       members: [
         {
           userId,
           role: 'owner',
           joinedAt: new Date(),
+          isPinned: true,
+          notificationPreferences: {
+            ASSIGNMENT: false,
+            MENTION: false,
+            GROUP: true,
+            REMINDER: true,
+            POLL: true,
+          }
         }
       ]
     });
@@ -282,7 +289,15 @@ export const acceptInvite = async (req, res) => {
         userId: joiningUserId.toString(),
         username: joiningUser.username,
         role: 'member',
-        joinedAt: new Date()
+        joinedAt: new Date(),
+        isPinned: false,
+        notificationPreferences: {
+          ASSIGNMENT: false,
+          MENTION: false,
+          GROUP: true,
+          REMINDER: true,
+          POLL: true,
+        }
       };
 
       group.members.push(newMember);

@@ -219,7 +219,7 @@ export const toggleCheck = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    res.status(200).json(item);
+    res.status(200).json(item.isChecked);
 
   } catch (error) {
     console.error(error);
@@ -289,7 +289,7 @@ export const togglePin = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    res.status(200).json(item);
+    res.status(200).json(item.isPinned);
 
   } catch (error) {
     console.error(error);
@@ -377,8 +377,10 @@ export const assignItem = async (req: AuthRequest, res: Response) => {
     }
     if ( assignedTo === userId) {
       item.claimedBy = userId;
+      item.assignedTo = undefined;
     } else {
       item.assignedTo = assignedTo;
+      item.claimedBy = undefined;
     }
     await item.save();
 
@@ -422,7 +424,7 @@ export const assignItem = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    res.status(200).json(item);
+    res.status(200).json(item._id);
 
   } catch (error) {
     console.error(error);
