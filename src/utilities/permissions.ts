@@ -1,85 +1,62 @@
-import { Group, GroupMember } from "src/models/models";
 
+// Hierarchy 
+export const ROLE_HIERARCHY = {
+  owner: 4,   
+  admin: 3,   
+  moderator: 2,
+  member: 1  
+};
 
+// Actions
 export enum GroupAction {
-  // Deleting the group, Changing the group name/icon
-  MANAGE_GROUP = 'MANAGE_GROUP',
-  // Kicking members, Promoting members
-  MANAGE_MEMBERS = 'MANAGE_MEMBERS',
-  // Deleting ANYONE'S poll, item, or note
-  MODERATE_CONTENT = 'MODERATE_CONTENT',
-  // Deleting/Editing YOUR OWN item, poll, or note
-  MODIFY_OWN_RESOURCE = 'MODIFY_OWN_RESOURCE',
-  // creating items, viewing the group
+  DELETE_GROUP = 'DELETE_GROUP',       // Owner only (The "Kill Switch")
+  UPDATE_SETTINGS = 'UPDATE_SETTINGS', // Owner + Admin (Name, Icon, Description)
+  MANAGE_MEMBERS = 'MANAGE_MEMBERS',   // Owner + Admin (Kick, Ban, Invite)
+  MODERATE_CONTENT = 'MODERATE_CONTENT', // Owner + Admin + Mod (Delete items/polls)
+  MODIFY_OWN_RESOURCE = 'MODIFY_OWN_RESOURCE', 
   CREATE_AND_VIEW = 'CREATE_AND_VIEW',
 }
 
-
-const ROLE_HIERARCHY = {
-  owner: 3,
-  moderator: 2,
-  member: 1
-};
-
-/**
- * @param group - The full group object (we need the members list)
- * @param userId - The ID of the user trying to do something
- * @param action - What are they trying to do?
- * @param resourceAuthorId - (Optional) Who owns the item they are touching?
- */
-
-interface IPermissionContext {
-  members: GroupMember[];
-  ownerId?: string;
-  settings?: any;   // For future
-}
-
-
 export const checkPermission = (
-  group: IPermissionContext,
+  group: any,
   userId: string,
   action: GroupAction,
   resourceAuthorId?: string
 ): boolean => {
-
-  // Find the member inside the group
-  const member = group.members.find(m => m.userId.toString() === userId.toString());
-
-  // Check if the user is a member of the group
+  const member = group.members.find((m: any) => m.userId.toString() === userId.toString());
   if (!member) return false;
 
-  const userRole = member.role; // 'owner' | 'moderator' | 'member'
-  
-  // If it's owner, then it can do anything
+  const userRole = member.role;
+  const userRank = ROLE_HIERARCHY[userRole] || 0;
+
+  // Owners can do ANYTHING
   if (userRole === 'owner') return true;
 
-
-  // Check for role
   switch (action) {
-    
-    //Only Owners can do this
-    case GroupAction.MANAGE_GROUP:
-      return false; 
+    case GroupAction.DELETE_GROUP:
+      return false; // Only owners
 
-    // Moderators or higher can do this
+    case GroupAction.UPDATE_SETTINGS:
+      // Admins and above
+      return userRank >= ROLE_HIERARCHY.admin;
+
     case GroupAction.MANAGE_MEMBERS:
+      // Admins and above
+      // If you want Mods to kick, change to ROLE_HIERARCHY.moderator
+      return userRank >= ROLE_HIERARCHY.admin;
+
     case GroupAction.MODERATE_CONTENT:
-      return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY.moderator;
+      // Mods and above
+      return userRank >= ROLE_HIERARCHY.moderator;
 
-    // Modifying a specific Item/Poll
     case GroupAction.MODIFY_OWN_RESOURCE:
-      // If they are a moderator, they can edit anything
-      if (ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY.moderator) return true;
-      
-      // If they are a simple member, they must own the resource
-      if (resourceAuthorId && resourceAuthorId.toString() === userId.toString()) {
-        return true;
-      }
-      return false;
+      // Mods and above OR the author
+      if (userRank >= ROLE_HIERARCHY.moderator) return true;
+      if (!resourceAuthorId) return false;
+      return resourceAuthorId.toString() === userId.toString();
 
-    // Basic access (Create/View)
     case GroupAction.CREATE_AND_VIEW:
-      return true; // As long as they are a member (checked at top), they pass
+      return true;
 
     default:
       return false;

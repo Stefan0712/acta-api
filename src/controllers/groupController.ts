@@ -7,7 +7,7 @@ import Poll from '../models/Poll';
 import Note from '../models/Note';
 import Group from '../models/Group';
 import mongoose from 'mongoose';
-import { checkPermission, GroupAction } from '../utilities/permissions';
+import { checkPermission, GroupAction, ROLE_HIERARCHY } from '../utilities/permissions';
 
 // Create a new group
 export const createGroup = async (req: AuthRequest, res: Response) => {
@@ -140,22 +140,35 @@ export const getGroupById = async (req: AuthRequest, res: Response) => {
 export const leaveGroup = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const group: IGroup | null = await Group.findById(id);
+    const group = await Group.findById(id);
+
     if (!group) return res.status(404).json({ message: 'Group not found' });
 
-    // Filter out the current user
-    const initialCount = group.members.length;
-    group.members = group.members.filter(
-      (m) => m.userId.toString() !== req.user.id
-    );
-
-    if (group.members.length === initialCount) {
+    // Find the user trying to leave
+    const memberIndex = group.members.findIndex(m => m.userId.toString() === req.user.id);
+    
+    if (memberIndex === -1) {
       return res.status(400).json({ message: 'You are not in this group' });
     }
 
-    if (group.members.length === 0) {
-      return res.status(400).json({ message: 'You cannot leave since you are the only one left. Delete the group instead' });
+    const member = group.members[memberIndex];
+
+    // Owner cannot leave if others exist
+    if (member.role === 'owner' && group.members.length > 1) {
+      return res.status(403).json({ 
+        message: 'Owners cannot leave the group. You must transfer ownership to another member first, or delete the group.' 
+      });
     }
+
+    // If they are the LAST person, tell them to delete instead
+    if (group.members.length === 1) {
+       return res.status(400).json({ 
+         message: 'You are the last member. Please delete the group instead of leaving.' 
+       });
+    }
+
+    // Remove the member
+    group.members.splice(memberIndex, 1);
 
     await group.save();
     res.status(200).json({ message: 'You have left the group' });
@@ -165,24 +178,40 @@ export const leaveGroup = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Server error leaving group' });
   }
 };
-// export const kickUser = async (req: AuthRequest, res: Response) => {
-//   try {
-//     const { id } = req.params;
-//     const { targetUserId } = req.body;
+
+export const kickUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { targetUserId } = req.body;
     
-//     const group: IGroup | null = await Group.findById(id);
-//     if (!group) return res.status(404).json({ message: 'Group not found' });
+    // Check if the user has the right permissions
+    const group = await Group.findById(id);
 
-//     const 
+    // Check if the group exists
+    if (!group) return res.status(404).json({ message: 'Group not found' });
 
-//     await group.save();
-//     res.status(200).json({ message: 'You have left the group' });
+    //Check the role
+    if (!checkPermission(group, req.user.id, GroupAction.MANAGE_MEMBERS)) {
+      return res.status(404).json({ message: "You are not authorized to kick members" })
+    }
+    
+    const targetMember = group.members.find(m => m.userId.toString() === targetUserId);
+    if (!targetMember) return res.status(404).json({ message: "User not in group" });
 
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Server error leaving group' });
-//   }
-// };
+    if (targetMember.role === 'owner') {
+      return res.status(403).json({ message: "You cannot kick the group owner." });
+    }
+
+    group.members = group.members.filter(user=>user.userId.toString() !== targetUserId);
+
+    await group.save();
+    res.status(200).json({ message: 'You have kicked a user!' });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error leaving group' });
+  }
+};
 
 export const deleteGroup = async (req: AuthRequest, res: Response) => {
   try {
@@ -191,7 +220,7 @@ export const deleteGroup = async (req: AuthRequest, res: Response) => {
 
     if (!group) return res.status(404).json({ message: 'Group not found' });
 
-    if (!checkPermission(group, req.user.id, GroupAction.MANAGE_GROUP)) {
+    if (!checkPermission(group, req.user.id, GroupAction.DELETE_GROUP)) {
       return res.status(403).json({ message: 'You do not have the right permissions to delete this group' });
     }
         
@@ -238,7 +267,7 @@ export const updateGroup = async (req: AuthRequest, res: Response) => {
 
     if (!group) return res.status(404).json({ message: 'Group not found' });
 
-    if (!checkPermission(group, req.user.id, GroupAction.MANAGE_GROUP)) {
+    if (!checkPermission(group, req.user.id, GroupAction.UPDATE_SETTINGS)) {
       return res.status(403).json({ message: 'You do not have the right permissions to update this group' });
     }
 
@@ -257,29 +286,51 @@ export const updateGroup = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Server error updating group' });
   }
 };
+
+
 export const updateRole = async (req: AuthRequest, res: Response) => {
   try {
-    const {targetUser, newRole} = req.body;
+    const { targetUserId, newRole } = req.body;
+    const { id } = req.params;
 
-    const group = await Group.findById(req.params.id);
-
+    const group = await Group.findById(id);
     if (!group) return res.status(404).json({ message: 'Group not found' });
 
-    const validRoles = ['member', 'moderator', 'owner'];
+    if (!checkPermission(group, req.user.id, GroupAction.MANAGE_MEMBERS)) {
+      return res.status(403).json({ message: 'Not authorized to change roles' });
+    }
+
+    const validRoles = ['member', 'moderator', 'admin']; 
     if (!validRoles.includes(newRole)) {
-      return res.status(400).json({ message: 'That role does not exist' });
+      return res.status(400).json({ message: 'Invalid role' });
     }
-    if (!checkPermission(group, req.user.id, GroupAction.MANAGE_GROUP)) {
-      return res.status(403).json({ message: 'You do not have the right permissions to change role' });
+     // Get both members
+    const requestor = group.members.find(m => m.userId.toString() === req.user.id);
+    const target = group.members.find(m => m.userId.toString() === targetUserId);
+
+    if (!requestor || !target) return res.status(404).json({ message: 'User not found' });
+
+    const requestorRank = ROLE_HIERARCHY[requestor.role];
+    const targetRank = ROLE_HIERARCHY[target.role];
+    const newRoleRank = ROLE_HIERARCHY[newRole];
+
+    // Check if they have the same role
+    if (requestorRank <= targetRank) {
+      return res.status(403).json({ message: 'You cannot manage a member with equal or higher rank.' });
     }
 
-    group.members = group.members.map(member=>member.userId.toString() === targetUser ? {...member, role: newRole} : member)
-    const updatedGroup = await group.save();
+    // Check if the user changing the role is higher in rank
+    if (requestorRank < newRoleRank) {
+      return res.status(403).json({ message: 'You cannot promote a member above your own rank.' });
+    }
 
-    res.status(200).json(updatedGroup);
+    target.role = newRole;
+    await group.save();
+
+    res.status(200).json({ message: "Role updated", updatedMember: target });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error updating group' });
+    res.status(500).json({ message: 'Server error updating role' });
   }
 };
-
