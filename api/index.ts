@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json()); // Parse JSON bodies
-app.options('*', (req, res) => {
+app.options(/(.*)/, (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', req.header('Origin') || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
