@@ -55,14 +55,19 @@ app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // Database connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/docket-db';
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+  try {
+    await mongoose.connect(process.env.MONGO_URI as string, {
+       serverSelectionTimeoutMS: 5000, 
+       socketTimeoutMS: 45000,
+    });
+    console.log("MongoDB Connected");
+  } catch (error) {
+    console.error("MongoDB Connection Error:", error);
+  }
+};
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => {
-    console.error('MongoDB Connection Error:', err);
-    process.exit(1);
-  });
 
 // Routes
 app.get('/', (req, res) => {
