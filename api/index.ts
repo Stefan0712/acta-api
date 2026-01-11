@@ -27,35 +27,28 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json()); // Parse JSON bodies
-app.options(/(.*)/, (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', req.header('Origin') || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
 
-const FRONTEND_IP = process.env.FRONT_END_IP; 
-const LOCALHOST_DEV = 'http://localhost:5173';
-const LOCALHOST_DEV2 = 'http://192.168.178.129:5173';
-const REPO_URL = 'https://stefan0712.github.io/acta/';
-const GITHUB_URL = 'https://stefan0712.github.io';
 
-const allowedOrigins = [FRONTEND_IP, LOCALHOST_DEV, REPO_URL, GITHUB_URL, LOCALHOST_DEV2];
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://stefan0712.github.io' 
+];
 
-const corsOptions = {
+app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.log("Blocked by CORS:", origin); 
+      return callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true,
-};
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
+}));
 
-app.use(cors(corsOptions));
 app.use(helmet({crossOriginResourcePolicy: false})); 
 app.use(morgan('dev'));
 
