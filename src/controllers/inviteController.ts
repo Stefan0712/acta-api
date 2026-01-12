@@ -5,8 +5,8 @@ import { Group as IGroup, GroupMember } from '../models/models';
 import User from "../models/User";
 import crypto from 'crypto'; // built-in module for token generation
 import { Request, Response } from 'express';
-import { AuthRequest } from "src/middleware/authMiddleware";
-import GroupInvitation from "src/models/GroupInvitation";
+import { AuthRequest } from "../middleware/authMiddleware";
+import GroupInvitation from "../models/GroupInvitation";
 
 
 
