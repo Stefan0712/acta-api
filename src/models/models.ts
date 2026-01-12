@@ -74,8 +74,8 @@ export interface GroupMember {
   username?: string;
   role: 'owner' | 'admin' | 'moderator' | 'member';
   joinedAt: Date;
-  isPinned: boolean; 
-  notificationPreferences: INotificationPreferences;
+  isPinned?: boolean; 
+  notificationPreferences?: INotificationPreferences;
 }
 
 export interface Group extends Document {

@@ -5,6 +5,8 @@ import { Group as IGroup, GroupMember } from '../models/models';
 import User from "../models/User";
 import crypto from 'crypto'; // built-in module for token generation
 import { Request, Response } from 'express';
+import { AuthRequest } from "src/middleware/authMiddleware";
+import GroupInvitation from "src/models/GroupInvitation";
 
 
 
@@ -215,5 +217,129 @@ export const generateInviteToken = async (req, res) => {
   } catch (error) {
     console.error('Error generating invite token:', error);
     res.status(500).json({ message: 'Server error during token generation.' });
+  }
+};
+
+
+// Send invite by username
+export const sendInvite = async (req: AuthRequest, res: Response) => {
+  try {
+    const { groupId } = req.params;
+    const { username } = req.body;
+
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    if (!checkPermission(group, req.user.id, GroupAction.MANAGE_MEMBERS)) {
+      return res.status(403).json({ message: 'Not authorized to invite users' });
+    }
+
+    const recipient = await User.findOne({ 
+      username: { $regex: new RegExp(`^${username}$`, 'i') } 
+    });
+
+    if (!recipient) {
+      return res.status(404).json({ message: `User "${username}" not found.` });
+    }
+
+    const isMember = group.members.some(m => m.userId.toString() === recipient._id.toString());
+    if (isMember) {
+      return res.status(400).json({ message: 'User is already in the group.' });
+    }
+
+    const existingInvite = await GroupInvitation.findOne({
+      groupId,
+      recipientId: recipient._id,
+      status: 'pending'
+    });
+    
+    if (existingInvite) {
+      return res.status(400).json({ message: 'User already has a pending invitation.' });
+    }
+
+    await GroupInvitation.create({
+      senderId: req.user.id,
+      recipientId: recipient._id,
+      groupId: group._id,
+      status: 'pending'
+    });
+
+    res.status(201).json({ message: `Invitation sent to ${recipient.username}` });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error sending invite' });
+  }
+};
+
+// Get user's invites
+export const getMyInvites = async (req: AuthRequest, res: Response) => {
+  try {
+    const invites = await GroupInvitation.find({
+      recipientId: req.user.id,
+      status: 'pending'
+    })
+    .populate('groupId', 'name icon color')
+    .populate('senderId', 'username')
+    .sort({ createdAt: -1 });
+
+    res.status(200).json(invites);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching invites' });
+  }
+};
+
+// Respond to invite
+export const respondToInvite = async (req: AuthRequest, res: Response) => {
+  try {
+    const { inviteId } = req.params;
+    const { action } = req.body;
+
+    const invite = await GroupInvitation.findById(inviteId);
+    if (!invite) return res.status(404).json({ message: 'Invitation not found' });
+
+    // Check if this is the user's invite
+    if (invite.recipientId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'This invitation is not for you.' });
+    }
+
+    // Handle Decline
+    if (action === 'decline') {
+      await invite.deleteOne(); // Just remove it
+      return res.status(200).json({ message: 'Invitation declined.' });
+    }
+
+    // Handle Accept
+    if (action === 'accept') {
+      const group = await Group.findById(invite.groupId);
+      if (!group) return res.status(404).json({ message: 'Group no longer exists.' });
+
+      // Add to Group Members
+      const isMember = group.members.some(m => m.userId.toString() === req.user.id);
+      if (!isMember) {
+        group.members.push({
+          userId: req.user.id,
+          role: 'member',
+          joinedAt: new Date()
+        });
+        await group.save();
+      }
+
+      // Mark invite as accepted
+      invite.status = 'accepted';
+      await invite.save();
+
+      return res.status(200).json({ 
+        message: 'You have joined the group!', 
+        groupId: group._id 
+      });
+    }
+
+    res.status(400).json({ message: 'Invalid action' });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error responding to invite' });
   }
 };

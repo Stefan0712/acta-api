@@ -11,6 +11,7 @@ dotenv.config();
 // Import Routes
 import authRoutes from '../src/routes/authRoutes';
 import userRoutes from '../src/routes/userRoutes';
+import invitesRoutes from '../src/routes/invitesRoutes.ts';
 import listRoutes from '../src/routes/listRoutes';
 import itemRoutes from '../src/routes/itemRoutes';
 import groupRoutes from '../src/routes/groupRoutes';
@@ -83,6 +84,7 @@ app.get('/', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'API is running' });
 });
 
+app.use('/api/invites', invitesRoutes)
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/lists', listRoutes);
