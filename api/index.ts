@@ -11,7 +11,7 @@ dotenv.config();
 // Import Routes
 import authRoutes from '../src/routes/authRoutes';
 import userRoutes from '../src/routes/userRoutes';
-import invitesRoutes from '../src/routes/invitesRoutes.ts';
+import invitesRoutes from '../src/routes/invitesRoutes';
 import listRoutes from '../src/routes/listRoutes';
 import itemRoutes from '../src/routes/itemRoutes';
 import groupRoutes from '../src/routes/groupRoutes';
