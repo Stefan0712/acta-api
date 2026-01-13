@@ -76,7 +76,7 @@ export const getLists = async (req: AuthRequest, res: Response) => {
     
     const groupObjectId = new mongoose.Types.ObjectId(groupId as string);
     const listsWithCounts = await ShoppingList.aggregate([
-      {$match: {groupId}},
+      {$match: {groupId: groupObjectId}},
       {
         $lookup: {
           from: 'shoppinglistitems',
