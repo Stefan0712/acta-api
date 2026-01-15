@@ -18,7 +18,7 @@ router.route('/')
 
 router.route('/:id')
   .get(getListById)
-  .put(updateList)
+  .patch(updateList)
   .delete(deleteList);
 
 

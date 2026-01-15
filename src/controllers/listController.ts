@@ -158,11 +158,12 @@ export const updateList = async (req: AuthRequest, res: Response) => {
     }
 
     // Update fields
-    const { name, description, icon, color } = req.body;
+    const { name, description, icon, color, isDeleted } = req.body;
     if ( name !== undefined) list.name = name;
     if ( description !== undefined) list.description = description;
     if ( icon !== undefined) list.icon = icon;
     if ( color !== undefined) list.color = color;
+    if ( isDeleted !== undefined) list.isDeleted = isDeleted;
 
     const updatedList = await list.save();
 
