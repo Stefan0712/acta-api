@@ -12,7 +12,7 @@ import { createNotification } from '../utilities/notificationHelpers';
 export const createItem = async (req: AuthRequest, res: Response) => {
   try {
     const { 
-      listId, name, qty, unit, category, store, 
+      _id, listId, name, qty, unit, category, store, 
       priority, reminder, deadline, description
     } = req.body;
     const list = await ShoppingList.findById(listId);
@@ -27,6 +27,7 @@ export const createItem = async (req: AuthRequest, res: Response) => {
 
     // Create the Item
     const newItem = await ShoppingListItem.create({
+      _id,
       listId,
       authorId: req.user.id,
       description,
