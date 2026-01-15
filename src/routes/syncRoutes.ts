@@ -1,5 +1,5 @@
 const express = require('express');
-import { getSyncData } from 'src/controllers/syncController';
+import { getSyncData } from '../controllers/syncController';
 import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
