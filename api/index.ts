@@ -20,7 +20,8 @@ import notificationRoutes from '../src/routes/notificationRoutes';
 import activityRoutes from '../src/routes/activityRoutes';
 import uploadRoutes from '../src/routes/uploadRoutes';
 import syncRoutes from '../src/routes/syncRoutes';
-import invitesRoutes from '../src/routes/invitesRoutes'
+import invitesRoutes from '../src/routes/invitesRoutes';
+import {getSyncData} from '../src/controllers/syncController';
 
 // Initialize App
 const app = express();
@@ -84,11 +85,13 @@ app.get('/', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'API is running' });
 });
 
+app.get('/api/sync', getSyncData);
+
+
 app.use('/api/invites', invitesRoutes)
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/lists', listRoutes);
-app.use('/api/sync', syncRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/notes', noteRoutes);
