@@ -52,7 +52,7 @@ export const getSyncData = async (req: Request, res: Response) => {
             groups,
             lists,
             items,
-            notes,
+            notes: flattenedNotes,
             polls,
             timestamp: new Date()
         });
