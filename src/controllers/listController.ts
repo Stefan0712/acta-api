@@ -12,7 +12,7 @@ import { checkPermission, GroupAction } from '../utilities/permissions';
 // Create a new list
 export const createList = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, color, groupId, isPinned } = req.body;
+    const { name, description, color, groupId, isPinned, _id } = req.body;
     
     const group = await Group.findById(groupId)
       .select('members ownerId settings') 
@@ -24,6 +24,7 @@ export const createList = async (req: AuthRequest, res: Response) => {
     }
 
     const newList: IShoppingList = await ShoppingList.create({
+      _id,
       authorId: req.user.id,
       name,
       description,

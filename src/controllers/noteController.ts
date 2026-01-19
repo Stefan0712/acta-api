@@ -14,13 +14,14 @@ const isMember = async (groupId: string, userId: string): Promise<boolean> => {
 
 export const createNote = async (req: AuthRequest, res: Response) => {
   try {
-    const { groupId, title, content, isPinned, authorUsername} = req.body;
+    const { groupId, title, content, isPinned, authorUsername, _id} = req.body;
 
     if (!await isMember(groupId, req.user.id)) {
         return res.status(403).json({ message: 'Not authorized to post in this group' });
     }
 
     const newNote = await Note.create({
+      _id,
       groupId,
       authorId: req.user.id,
       title: title || "Untitled Note",

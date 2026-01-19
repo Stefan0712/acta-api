@@ -6,13 +6,14 @@ import { logActivity } from '../utilities/logActivity';
 
 export const createPoll = async (req: AuthRequest, res: Response) => {
   try {
-    const { groupId, title, description, options, allowCustomOptions, expiresAt } = req.body;
+    const { groupId, title, description, options, allowCustomOptions, expiresAt, _id } = req.body;
 
     if (!options || options.length < 2) {
       return res.status(400).json({ message: "Poll must have at least 2 options" });
     }
 
     const newPoll = await Poll.create({
+      _id,
       groupId,
       authorId: req.user.id,
       authorUsername: req.user.username,
