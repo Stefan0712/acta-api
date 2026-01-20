@@ -19,7 +19,7 @@ export const createPoll = async (req: AuthRequest, res: Response) => {
       authorUsername: req.user.username,
       title,
       description,
-      options: options.map((text: string) => ({ text, votes: [] })),
+      options,
       allowCustomOptions,
       expiresAt,
     });
