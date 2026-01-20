@@ -11,7 +11,7 @@ export const createPoll = async (req: AuthRequest, res: Response) => {
     if (!options || options.length < 2) {
       return res.status(400).json({ message: "Poll must have at least 2 options" });
     }
-
+    console.log(options)
     const newPoll = await Poll.create({
       _id,
       groupId,
