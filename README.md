@@ -1,10 +1,10 @@
-# Docket API
+# Acta API
 
 A comprehensive, production-ready backend API for collaborative task and note management. Built with modern technologies and best practices for scalability, security, and developer experience.
 
 ## Overview
 
-**Docket API** is a robust Node.js backend service that powers the Docket application—a collaborative platform designed for managing shopping lists, notes, polls, and group activities. The API emphasizes offline-first synchronization, real-time collaboration, and secure multi-user group management.
+**Acta API** is a robust Node.js backend service that powers the Acta application—a collaborative platform designed for managing shopping lists, notes, polls, and group activities. The API emphasizes offline-first synchronization, real-time collaboration, and secure multi-user group management.
 
 ### Key Features
 
@@ -51,8 +51,8 @@ A comprehensive, production-ready backend API for collaborative task and note ma
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/stefan0712/docket-api.git
-   cd docket-api
+   git clone https://github.com/stefan0712/Acta-api.git
+   cd Acta-api
    ```
 
 2. **Install dependencies**
@@ -64,7 +64,7 @@ A comprehensive, production-ready backend API for collaborative task and note ma
    Create a `.env` file in the root directory:
    ```env
    PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/docket
+   MONGODB_URI=mongodb://localhost:27017/Acta
    JWT_SECRET=your_jwt_secret_key
    NODE_ENV=development
    ```
